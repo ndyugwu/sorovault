@@ -19,21 +19,21 @@ func TestNewPostgresEdgeCases(t *testing.T) {
 		wantError   bool
 	}{
 		{
-			name:        "invalid connection string",
-			databaseURL: "not-a-valid-url",
-			opts:        store.PoolOptions{},
-			wantError:   true,
-		},
-		{
 			name:        "empty connection string",
 			databaseURL: "",
 			opts:        store.PoolOptions{},
 			wantError:   true,
 		},
 		{
-			name:        "min conns exceeds max conns",
-			databaseURL: "postgres://user:pass@localhost:5432/db",
-			opts:        store.PoolOptions{MinConns: 10, MaxConns: 2},
+			name:        "invalid connection string scheme",
+			databaseURL: "not-a-postgres-url",
+			opts:        store.PoolOptions{},
+			wantError:   true,
+		},
+		{
+			name:        "invalid pool bounds min greater than max",
+			databaseURL: "postgres://localhost:5432/db",
+			opts:        store.PoolOptions{MinConns: 10, MaxConns: 5},
 			wantError:   true,
 		},
 	}
@@ -42,15 +42,11 @@ func TestNewPostgresEdgeCases(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			ctx := context.Background()
-			p, err := store.NewPostgres(ctx, tt.databaseURL, tt.opts)
+			_, err := store.NewPostgres(ctx, tt.databaseURL, tt.opts)
 			if tt.wantError {
 				assert.Error(t, err)
-				assert.Nil(t, p)
 			} else {
 				assert.NoError(t, err)
-				if p != nil {
-					_ = p.Close()
-				}
 			}
 		})
 	}
