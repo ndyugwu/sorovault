@@ -447,6 +447,8 @@ func TestNetworkName(t *testing.T) {
 		// An unrecognised passphrase is passed through so that a private
 		// network still gets its own stable namespace.
 		{"Standalone Network ; February 2017", "Standalone Network ; February 2017"},
+		{"custom passphrase", "custom passphrase"},
+		{"   ", "   "},
 	}
 
 	for _, tt := range tests {
@@ -466,10 +468,29 @@ func TestNetworkLogLabel(t *testing.T) {
 func TestValidateContractID(t *testing.T) {
 	t.Parallel()
 
-	require.NoError(t, stellar.ValidateContractID(testContractID))
+	tests := []struct {
+		name       string
+		contractID string
+		wantError  bool
+	}{
+		{"valid", testContractID, false},
+		{"empty", "", true},
+		{"too short", "C", true},
+		{"garbage", "nope", true},
+		{"wrong prefix account", "GCHPJMNH7WWIHX7CY5CKWR3I35A5DK4X6IU7CJSFUDHTBEWWMI6VEHFJ", true},
+		{"invalid checksum", "CDZZXVGUCLBUTE3WDD6TF2NXPTBPOYTVPPBBIZMSPVIQLUG226XJ4PAZ", true},
+	}
 
-	for _, bad := range []string{"", "C", "nope", "GCHPJMNH7WWIHX7CY5CKWR3I35A5DK4X6IU7CJSFUDHTBEWWMI6VEHFJ"} {
-		assert.Error(t, stellar.ValidateContractID(bad), "expected %q to be rejected", bad)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			err := stellar.ValidateContractID(tt.contractID)
+			if tt.wantError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
 	}
 }
 

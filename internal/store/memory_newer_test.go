@@ -112,6 +112,82 @@ func TestMemoryStatsLatestMatchesPostgresOrder(t *testing.T) {
 // interface versions are observed at the same instant. The list must contain
 // both versions, and the one it marks Current must be exactly what GetSpec
 // returns as the current interface, so the two views cannot disagree.
+// TestNewMemoryEdgeCases covers edge cases for NewMemory and operations on an empty/newly created memory store.
+func TestNewMemoryEdgeCases(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	t.Run("empty store queries return not found or empty collections", func(t *testing.T) {
+		t.Parallel()
+		m := NewMemory()
+
+		_, err := m.GetContract(ctx, "testnet", newerIDLow)
+		assert.ErrorIs(t, err, ErrNotFound)
+
+		page, err := m.ListContracts(ctx, ListFilter{Network: "testnet"})
+		assert.NoError(t, err)
+		assert.Equal(t, 0, page.Total)
+		assert.Empty(t, page.Contracts)
+
+		stats, err := m.Stats(ctx)
+		assert.NoError(t, err)
+		assert.Equal(t, 0, stats.Contracts)
+		assert.Equal(t, 0, stats.Versions)
+		assert.Nil(t, stats.Latest)
+
+		err = m.Ping(ctx)
+		assert.NoError(t, err)
+
+		err = m.Close()
+		assert.NoError(t, err)
+	})
+
+	t.Run("boundary values and invalid inputs on new memory store", func(t *testing.T) {
+		t.Parallel()
+	tests := []struct {
+			name    string
+			run     func(t *testing.T, m *Memory)
+		}{
+			{
+				name: "save nil interface fails",
+				run: func(t *testing.T, m *Memory) {
+					err := m.Save(ctx, Contract{ContractID: newerIDLow, Network: "testnet"}, nil)
+					assert.Error(t, err)
+				},
+			},
+			{
+				name: "save wasm spec with nil interface fails",
+				run: func(t *testing.T, m *Memory) {
+					err := m.SaveWasmSpec(ctx, "testnet", "hash1", nil)
+					assert.Error(t, err)
+				},
+			},
+			{
+				name: "get non-existent wasm spec fails",
+				run: func(t *testing.T, m *Memory) {
+					_, err := m.GetWasmSpec(ctx, "testnet", "nonexistent")
+					assert.ErrorIs(t, err, ErrNotFound)
+				},
+			},
+			{
+				name: "delete non-existent contract fails",
+				run: func(t *testing.T, m *Memory) {
+					err := m.Delete(ctx, "testnet", "nonexistent")
+					assert.ErrorIs(t, err, ErrNotFound)
+				},
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+				m := NewMemory()
+				tt.run(t, m)
+			})
+		}
+	})
+}
+
 func TestMemoryTiedVersionsStayConsistentWithGet(t *testing.T) {
 	t.Parallel()
 

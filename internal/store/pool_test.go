@@ -91,3 +91,43 @@ func TestNewPostgresAppliesPoolOptions(t *testing.T) {
 	assert.Equal(t, int32(3), pool.MaxConns)
 	assert.Equal(t, int32(1), pool.MinConns)
 }
+
+func TestNewPostgresEdgeCases(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		url     string
+		opts    store.PoolOptions
+		wantErr string
+	}{
+		{
+			name:    "empty database URL",
+			url:     "",
+			opts:    store.PoolOptions{},
+			wantErr: "store: pinging postgres",
+		},
+		{
+			name:    "invalid database URL scheme",
+			url:     "invalid://not-a-db",
+			opts:    store.PoolOptions{},
+			wantErr: "store:",
+		},
+		{
+			name:    "invalid pool options min greater than max",
+			url:     poolURL,
+			opts:    store.PoolOptions{MaxConns: 2, MinConns: 5},
+			wantErr: "exceeds its maximum",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			s, err := store.NewPostgres(context.Background(), tt.url, tt.opts)
+			require.Error(t, err)
+			assert.Nil(t, s)
+			assert.Contains(t, err.Error(), tt.wantErr)
+		})
+	}
+}
