@@ -13,42 +13,43 @@ func TestNewPostgresEdgeCases(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name    string
-		url     string
-		opts    store.PoolOptions
-		wantErr bool
+		name        string
+		databaseURL string
+		opts        store.PoolOptions
+		wantError   bool
 	}{
 		{
-			name:    "empty database URL",
-			url:     "",
-			opts:    store.PoolOptions{},
-			wantErr: true,
+			name:        "invalid connection string",
+			databaseURL: "not-a-valid-url",
+			opts:        store.PoolOptions{},
+			wantError:   true,
 		},
 		{
-			name:    "invalid URL scheme",
-			url:     "not-a-url://",
-			opts:    store.PoolOptions{},
-			wantErr: true,
+			name:        "empty connection string",
+			databaseURL: "",
+			opts:        store.PoolOptions{},
+			wantError:   true,
 		},
 		{
-			name:    "invalid pool options min greater than max",
-			url:     "postgres://localhost:5432/db",
-			opts:    store.PoolOptions{MaxConns: 1, MinConns: 5},
-			wantErr: true,
+			name:        "min conns exceeds max conns",
+			databaseURL: "postgres://user:pass@localhost:5432/db",
+			opts:        store.PoolOptions{MinConns: 10, MaxConns: 2},
+			wantError:   true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			s, err := store.NewPostgres(context.Background(), tt.url, tt.opts)
-			if tt.wantErr {
+			ctx := context.Background()
+			p, err := store.NewPostgres(ctx, tt.databaseURL, tt.opts)
+			if tt.wantError {
 				assert.Error(t, err)
-				assert.Nil(t, s)
+				assert.Nil(t, p)
 			} else {
 				assert.NoError(t, err)
-				if s != nil {
-					_ = s.Close()
+				if p != nil {
+					_ = p.Close()
 				}
 			}
 		})
