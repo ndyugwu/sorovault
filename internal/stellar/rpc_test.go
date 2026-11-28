@@ -121,9 +121,9 @@ func TestClose(t *testing.T) {
 		t.Parallel()
 
 		tests := []struct {
-			name    string
-			fetcher *stellar.RPCFetcher
-			wantErr bool
+			name	string
+			fetcher	*stellar.RPCFetcher
+			wantErr	bool
 		}{
 			{
 				name:    "happy path with active client",
@@ -544,37 +544,37 @@ func TestNetworkLogLabel(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name string
+name string
 		in   string
 		want string
 	}{
 		{
-			name: "happy path - public",
+name: "happy path - public",
 			in:   "public",
 			want: "public",
 		},
 		{
-			name: "happy path - testnet",
+name: "happy path - testnet",
 			in:   "testnet",
 			want: "testnet",
 		},
 		{
-			name: "happy path - futurenet",
+name: "happy path - futurenet",
 			in:   "futurenet",
 			want: "futurenet",
 		},
 		{
-			name: "empty input",
-			in:   "",
-			want: "unknown",
+name:	"empty input",
+			in:	"",
+			want:	"unknown",
 		},
 		{
-			name: "invalid input",
+name: "invalid input",
 			in:   "not-a-valid-network",
 			want: "unknown",
 		},
 		{
-			name: "boundary - random string",
+name: "boundary - random string",
 			in:   "Standalone Network ; February 2017",
 			want: "unknown",
 		},
